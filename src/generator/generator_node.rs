@@ -57,61 +57,126 @@ impl MapSpawner {
         }
 
         let ground = ground.unwrap();
-        let offset = 0.45;
-        let wanted_scale = 3;
-        let noise = FastNoiseLite::new();
 
-        let triangle_width: f64 = 32.0;
-        let triangle_height = sqrt(pow(triangle_width, 2.0) - pow(triangle_width / 2.0, 2.0));
+        // generate the map
+        let config = TileMapConfig {
+            edge_width: 16.0,
+            seed: self.seed.clone(),
+            offset: 0.45,
+            scale_factor: 3,
+        };
+        let tile_map_data = TileMapData::generate(100, 100, config);
 
-        let scale = wanted_scale as f32 / triangle_width as f32;
+        // draw the map
+        for y in 0..tile_map_data.y_size {
+            let row_data = &tile_map_data.tiles[y];
 
-        let x_vec = Vector2::RIGHT.rotated(0.5235) * (triangle_height as f32);
-
-        let noise_generator: CustomNoiseGenerator = CustomNoiseGenerator::new(offset, scale);
-
-        let mut poly = Polygon2D::new_alloc();
-        poly.set_name("Poly".into());
-
-        for y in 0..100 {
-            for x in 0..100 {
-                let x_coord = x as f32 * x_vec.x;
-                let mut y_coord = y as f32 * triangle_height as f32;
-
-                if x % 2 == 1 {
-                    y_coord += x_vec.y;
-                }
-
+            let mut draw_tile = |tile_data: &TileData| {
                 let mut ground_clone = ground
                     .duplicate()
                     .expect("Failed to clone ground sprite")
                     .cast::<Node2D>();
                 ground_clone.set_name("GroundClone".into());
 
-                let noise = noise_generator.get_noise(x_coord, y_coord);
-                let noise = stepify(noise);
-
-                let elevated = noise * 50.0;
-                // let elevated = 0.0f32;
-
-                godot_print!("Noise: {}", noise);
-
-                let color = if noise < 0.5 {
-                    Color::from_rgb(0.1, 0.1, noise * 2.0)
+                let color = if tile_data.height < 0.5 {
+                    Color::from_rgb(0.1, 0.1, tile_data.height * 2.0)
                 } else {
-                    Color::from_rgb(noise, noise, noise)
+                    Color::from_rgb(tile_data.height, tile_data.height, tile_data.height)
                 };
 
+                let new_coordinates =
+                    tile_data.coordinates - Vector2::new(0.0, 50.0 * tile_data.height);
+
                 ground_clone.set_modulate(color);
-                ground_clone.set_position(Vector2::new(x_coord, y_coord - elevated));
-                ground_clone.set_z_index((noise * 40.0) as i32 - 40);
+                ground_clone.set_position(new_coordinates);
 
-                // godot_print!("Ground sprite cloned {:?}", ground_clone);
+                self.sprite.add_child(ground_clone.upcast::<Node>());
+            };
 
-                let asds = ground_clone.upcast::<Node>();
+            // -_-_-_- <- how tile in each row placed currently
+            // render the tiles above first, then render the below ones
 
-                self.sprite.add_child(asds);
+            for x in (0..tile_map_data.x_size).step_by(2) {
+                draw_tile(&row_data[x]);
             }
+
+            for x in (1..tile_map_data.x_size).step_by(2) {
+                draw_tile(&row_data[x]);
+            }
+        }
+    }
+
+    #[func]
+    fn _generate_map(&mut self) {}
+}
+
+struct TileData {
+    height: f32,
+    coordinates: Vector2,
+}
+
+struct TileMapData {
+    tiles: Vec<Vec<TileData>>,
+    x_size: usize,
+    y_size: usize,
+    config: TileMapConfig,
+}
+
+struct TileMapConfig {
+    edge_width: f32,
+    seed: u64,
+    offset: f32,
+    scale_factor: u32,
+}
+
+impl TileMapData {
+    fn generate(x_size: usize, y_size: usize, config: TileMapConfig) -> Self {
+        // const
+        let edge_width = config.edge_width;
+        let seed = config.seed;
+        let offset = config.offset;
+        let scale_factor = config.scale_factor;
+
+        // precalcuate number
+        let big_r = edge_width as f32;
+        let small_r = (edge_width.powi(2) - (edge_width / 2.0).powi(2)).sqrt();
+        let x_offset = big_r + big_r / 2.0;
+        let y_offset = small_r * 2f32;
+
+        let scale = scale_factor as f32 / edge_width as f32;
+        let noise_generator = CustomNoiseGenerator::new(offset, scale);
+
+        // generate tiles
+        let mut tiles = Vec::new();
+
+        for y in 0..y_size {
+            let mut row = Vec::new();
+            let y_coord = y as f32 * y_offset;
+
+            for x in 0..x_size {
+                let x_coord = x as f32 * x_offset;
+                let real_y_coord = if x % 2 == 1 {
+                    y_coord + small_r
+                } else {
+                    y_coord
+                };
+
+                let noise = noise_generator.get_noise(x_coord, real_y_coord);
+
+                row.push(TileData {
+                    height: noise,
+                    coordinates: Vector2::new(x_coord, real_y_coord),
+                });
+            }
+
+            tiles.push(row);
+        }
+
+        Self {
+            tiles,
+            x_size,
+            y_size,
+            config,
         }
     }
 }
