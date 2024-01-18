@@ -16,6 +16,7 @@ use godot::engine::Sprite2D;
 pub struct Player {
     pub speed: f64,
     angular_speed: f64,
+    pub mode: Mode,
 
     #[base]
     sprite: Base<Sprite2D>,
@@ -30,6 +31,7 @@ impl ISprite2D for Player {
             speed: 400.0,
             angular_speed: std::f64::consts::PI,
             sprite,
+            mode: Mode::Move,
         }
     }
 
@@ -46,14 +48,25 @@ impl ISprite2D for Player {
         self.sprite.translate(velocity * delta as f32);
     }
 
-    // #[func]
-    // fn increase_speed(&mut self, amount: f64) {
-    //     self.speed += amount;
-    //     self.sprite.emit_signal("speed_increased".into(), &[]);
-    // }
+    fn process(&mut self, _delta: f64) {
+        // on tap B, release signal
+        let input = Input::singleton();
+        if input.is_action_just_pressed("build".into()) {
+            let new_mode = match self.mode {
+                Mode::Build => Mode::Move,
+                Mode::Move => Mode::Build,
+            };
 
-    // #[signal]
-    // fn speed_increased();
+            self.sprite
+                .emit_signal("change_mode".into(), &[(new_mode as i32).to_variant()]);
+            self.mode = new_mode;
+        }
+
+        // on click, print
+        // if self.mode == Mode::Build && input.is_action_just_pressed("click".into()) {
+        //     godot_print!("Click!");
+        // }
+    }
 }
 
 #[godot_api]
@@ -64,5 +77,11 @@ impl Player {
     }
 
     #[signal]
-    fn speed_increased();
+    fn change_mode(&mut self, mode: i64) {}
+}
+
+#[derive(Clone, Copy)]
+pub enum Mode {
+    Move,
+    Build,
 }

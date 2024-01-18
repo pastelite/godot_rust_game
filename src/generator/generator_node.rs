@@ -144,7 +144,8 @@ impl TileMapData {
         let y_offset = small_r * 2f32;
 
         let scale = scale_factor as f32 / edge_width as f32;
-        let noise_generator = CustomNoiseGenerator::new(offset, scale);
+        let noise_generator =
+            CustomNoiseGenerator::new(offset + (seed * x_size as u64) as f32, scale);
 
         // generate tiles
         let mut tiles = Vec::new();
