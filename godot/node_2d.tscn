@@ -1,0 +1,65 @@
+[gd_scene load_steps=5 format=3 uid="uid://c4m6rncd3vrbk"]
+
+[ext_resource type="Texture2D" uid="uid://du43hjt7q1x7s" path="res://icon.svg" id="1_cax5x"]
+[ext_resource type="Texture2D" uid="uid://bdej71scn2fx6" path="res://grasstoppres_0.png" id="2_u4jd3"]
+[ext_resource type="Script" path="res://Camera2D.gd" id="3_0skhe"]
+[ext_resource type="Script" path="res://Label2.gd" id="3_cs8yg"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Player" type="Player" parent="."]
+visible = false
+position = Vector2(177, 82)
+texture = ExtResource("1_cax5x")
+
+[node name="MapSpawner" type="MapSpawner" parent="."]
+
+[node name="Ground" type="Node2D" parent="MapSpawner"]
+
+[node name="GroundTop" type="Polygon2D" parent="MapSpawner/Ground"]
+position = Vector2(3.05176e-05, -0.143965)
+rotation = 1.57079
+texture = ExtResource("2_u4jd3")
+texture_offset = Vector2(16, 16)
+texture_scale = Vector2(8, 8)
+polygon = PackedVector2Array(0, -16, -13.856, -8, -13.856, 8, 0, 16, 13.856, 8, 13.856, -8)
+
+[node name="Bottom" type="Polygon2D" parent="MapSpawner/Ground"]
+scale = Vector2(1, 0.993144)
+color = Color(0.619608, 0.352941, 0.156863, 1)
+polygon = PackedVector2Array(-16, 0, -8, 13.856, 8, 13.856, 16, 0, 16, 6.04142, 8, 19.1312, -8, 19.1312, -16, 5.03452)
+
+[node name="Ground_Old" type="Sprite2D" parent="MapSpawner"]
+visible = false
+light_mask = 512
+visibility_layer = 512
+z_index = -10
+position = Vector2(355, 222)
+scale = Vector2(0.125, 0.125)
+texture = ExtResource("2_u4jd3")
+centered = false
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Label" type="Label" parent="CanvasLayer"]
+offset_left = 4.0
+offset_top = 3.0
+offset_right = 95.0
+offset_bottom = 26.0
+text = "Hello World"
+
+[node name="Label2" type="Label" parent="CanvasLayer"]
+offset_left = 3.0
+offset_top = 25.0
+offset_right = 43.0
+offset_bottom = 48.0
+text = "Test"
+script = ExtResource("3_cs8yg")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(543, 309)
+script = ExtResource("3_0skhe")
+
+[connection signal="change_mode" from="Player" to="CanvasLayer/Label2" method="_on_player_change_mode"]
